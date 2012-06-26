@@ -9,13 +9,18 @@ Features
 ========
 
 Decoding :
-	support all types, 2D and Cube
-	decoding sepecific face in cube texture
-	support all RGB888, RGBA8888 and Blockbased compression (decoding DXT1 version)
+
+support all types, 2D and Cube
+
+decoding sepecific face in cube texture
+
+support all RGB888, RGBA8888 and Blockbased compression (decoding DXT1 version)
 	
 Encoding
-	support all types, 2D and Cube
-	support only RGB888 and RGBA8888 formats.
+
+support all types, 2D and Cube
+
+support only RGB888 and RGBA8888 formats.
 	
 	
 Limitations
