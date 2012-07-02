@@ -21,13 +21,13 @@ package atf {
 			var b : Vector.<uint> = _blocks.blocks;
 			
 			var blockBased : Boolean = _header.format == AtfFormat.Compressed;
-			var mul : int = blockBased ? 8 : 1;
+			var blocksPerMip : uint = blockBased ? 8 : 1;
 			var cubic : Boolean = _header.type == AtfType.CUBE_MAP;
 			if( !cubic ) face = 0;
 
 			miplevel = (miplevel >= _header.count ) ? _header.count-1 : miplevel;
 			
-			var i : int = ( face + miplevel* (cubic?6:1) ) * mul * 2;
+			var i : int = ( ( face * (cubic?6:1) + miplevel )* blocksPerMip ) << 1;
 			
 			if( _header.format == AtfFormat.Compressed )
 				return _extractDXT1( atfbytes, b[ i ], b[ i + 1 ], b[ i+2 ], b[ i + 3 ] );
