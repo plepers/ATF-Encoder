@@ -9,19 +9,17 @@ Features
 ========
 
 Decoding :
-
-support all types, 2D and Cube
-
-decoding sepecific face in cube texture
-
-support all RGB888, RGBA8888 and Blockbased compression (decoding DXT1 version)
+* support all types, 2D and Cube
+* decoding sepecific face in cube texture
+* support all RGB888, RGBA8888 and Blockbased compression (decoding DXT1 version)
 	
 Encoding
+* support all types, 2D and Cube
+* support only RGB888 and RGBA8888 formats.
 
-support all types, 2D and Cube
-
-support only RGB888 and RGBA8888 formats.
-	
+Utils
+* replaceImageData : modify mip/face in existing atf file	
+* removeAllBut : keep only one blockbased format of existing atf file. Use it to create platform specific lightweight texture by removing unused one.
 	
 Limitations
 ===========	
