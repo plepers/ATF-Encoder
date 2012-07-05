@@ -46,7 +46,7 @@ package atf {
 
 
 
-		internal var blocks : Vector.<uint>;
+		public var blocks : Vector.<uint>;
 
 	}
 }
