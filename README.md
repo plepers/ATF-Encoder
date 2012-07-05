@@ -20,7 +20,8 @@ Encoding
 Utils
 * replaceImageData : modify mip/face in existing atf file	
 * removeAllBut : keep only one blockbased format of existing atf file. Use it to create platform specific lightweight texture by removing unused one.
-	
+* getSuitableBlockbasedFormat :  return one of the blockbased texture formats internaly used by flash for the giver Context3D
+
 Limitations
 ===========	
 
