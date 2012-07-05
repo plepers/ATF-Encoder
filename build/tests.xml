@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+     3 juil. 2012 10:54:33                                                        
+
+     Atf Encoder tests    
+     description
+                   
+     lepersp                                                                
+     ====================================================================== -->
+<project name="Atf Encoder tests" default="main">
+    <description>
+            description
+    </description>
+
+    <!-- ================================= 
+          target: main              
+         ================================= -->
+    <target name="main" depends="init" description="description">
+        
+    </target>
+	
+
+	<target name="testHelp" depends="init" description="description">
+		<exec executable="${cexecutable}">
+		</exec>
+	</target>
+
+	<!-- ================================= 
+          target: splitter test              
+         ================================= -->
+	<target name="splitter test" depends="init" description="description">
+
+		<exec executable="${cexecutable}" dir="${basedir}/deploy">
+			<arg line="-i bb_mip_tmp.atf" />
+			<arg line="-o _splitted_bb_mip_tmp.atf" />
+		</exec>
+
+		<exec executable="${cexecutable}" dir="${basedir}/deploy">
+			<arg line="-i bb_mip_tmp.atf" />
+			<arg line="-o _splitted_bb_mip_tmp_sel.atf" />
+			<arg line="-E" />
+		</exec>
+
+	</target>
+
+    <!-- - - - - - - - - - - - - - - - - - 
+          target: init                      
+         - - - - - - - - - - - - - - - - - -->
+    <target name="init">
+    	
+    </target>
+
+</project>

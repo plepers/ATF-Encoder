@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+     15. jun 2012 21:16:20                                                        
+
+     ATF ENCODER  
+     description
+                   
+     Pierre Lepers                                                             
+     ====================================================================== -->
+<project name="ATF ENCODER" default="main" basedir="../">
+
+	<description>
+            build digitas atf tools
+    </description>
+
+	<property name="FMK_HOME" location="${basedir}" />
+	<loadproperties srcfile="${basedir}/build/build.properties" />
+	
+
+
+	<!-- ================================= 
+          target: main              
+         ================================= -->
+	<target name="main" depends="init" description="description">
+		<antcall target="compile">
+		</antcall>
+		<antcall target="test1">
+		</antcall>
+
+	</target>
+
+	<!-- ================================= 
+          target: compile splitter              
+         ================================= -->
+	<target name="compile splitter" depends="init" description="description">
+
+		<java jar="${redtamarin.asc}" fork="true">
+			<arg line="-import ${redtamarin.libs.builtin}" />
+			<arg line="-import ${redtamarin.libs.toplevel}" />
+			<arg line="-d" />
+			<arg line="-strict" />
+			<arg line="${basedir}/src/cmd/Splitter.as" />
+		</java>
+
+		<move file="${basedir}/src/cmd/Splitter.abc" tofile="${basedir}/libs/splitter.abc" />
+
+	</target>
+
+	<!-- ================================= 
+          target: create excutables
+         ================================= -->
+	<target name="create excutables" depends="init" description="description">
+
+		<exec executable="${redtamarin.createprojector}" dir="${basedir}">
+			<arg line="-exe ${redtamarin.win.avmplus}" />
+			<arg line="-o ${basedir}/bin/win/splitter.exe" />
+			<arg line="${basedir}/libs/splitter.abc" />
+		</exec>
+		<exec executable="${redtamarin.createprojector}" dir="${basedir}">
+			<arg line="-exe ${redtamarin.osx.avmplus}" />
+			<arg line="-o ${basedir}/bin/osx/splitter" />
+			<arg line="${basedir}/libs/splitter.abc" />
+		</exec>
+		<exec executable="${redtamarin.createprojector}" dir="${basedir}">
+			<arg line="-exe ${redtamarin.nix.avmplus}" />
+			<arg line="-o ${basedir}/bin/nix/splitter" />
+			<arg line="${basedir}/libs/splitter.abc" />
+		</exec>
+
+
+
+	</target>
+
+
+	
+
+
+
+	<!-- - - - - - - - - - - - - - - - - - 
+          target: init                      
+         - - - - - - - - - - - - - - - - - -->
+	<target name="init">
+
+
+		<condition property="cexecutable" value="${digitas.tamarin.avmplus_mac}">
+			<os family="mac"/>
+		</condition>
+		<condition property="cexecutable" value="${basedir}/bin/splitter.exe">
+			<os family="windows"/>
+		</condition>
+
+	</target>
+
+</project>
