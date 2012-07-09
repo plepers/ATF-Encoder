@@ -134,6 +134,11 @@ package atf {
 			bytes.position += 3;
 			bmp.encode( rect, opts, bytes );
 			var len : uint = bytes.position - pos - 3;
+			if( bmp.transparent ) { // fix WICformat for BGRA tex
+				bytes.position = pos + 3 + 89;
+				bytes.writeByte( 0x0F );
+			}
+			bytes.position = pos;
 			bytes.position = pos;
 			bytes.writeByte( len >> 16 );
 			bytes.writeByte( len >> 8 );
