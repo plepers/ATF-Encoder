@@ -139,7 +139,6 @@ package atf {
 				bytes.writeByte( 0x0F );
 			}
 			bytes.position = pos;
-			bytes.position = pos;
 			bytes.writeByte( len >> 16 );
 			bytes.writeByte( len >> 8 );
 			bytes.writeByte( len );
