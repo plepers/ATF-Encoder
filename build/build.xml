@@ -22,9 +22,14 @@
           target: main              
          ================================= -->
 	<target name="main" depends="init" description="description">
-		<antcall target="compile">
+		<antcall target="compile splitter">
 		</antcall>
-		<antcall target="test1">
+		<antcall target="create splitter excutables">
+		</antcall>
+
+		<antcall target="compile hdrconverter">
+		</antcall>
+		<antcall target="create hdrconverter excutables">
 		</antcall>
 
 	</target>
@@ -47,9 +52,9 @@
 	</target>
 
 	<!-- ================================= 
-          target: create excutables
+          target: create splitter excutables
          ================================= -->
-	<target name="create excutables" depends="init" description="description">
+	<target name="create splitter excutables" depends="init" description="description">
 
 		<exec executable="${redtamarin.createprojector}" dir="${basedir}">
 			<arg line="-exe ${redtamarin.win.avmplus}" />
@@ -71,6 +76,54 @@
 
 	</target>
 
+	
+	
+	<!-- ================================= 
+          target: compile hdrconverter              
+         ================================= -->
+	<target name="compile hdrconverter" depends="init" description="description">
+
+		<java jar="${redtamarin.asc}" fork="true">
+			<arg line="-import ${redtamarin.libs.builtin}" />
+			<arg line="-import ${redtamarin.libs.toplevel}" />
+			<arg line="-d" />
+			<arg line="-strict" />
+			<arg line="${basedir}/src/cmd/HdrConverter.as" />
+		</java>
+
+		<move file="${basedir}/src/cmd/hdrconverter.abc" tofile="${basedir}/libs/hdrconverter.abc" overwrite="true" />
+
+	</target>
+
+	<!-- ================================= 
+          target: create hdrconverter excutables
+         ================================= -->
+	<target name="create hdrconverter excutables" depends="init" description="description">
+		
+		<delete dir="${basedir}/bin/" includes="**/hdrconverter*">
+			
+		</delete>
+		
+		<exec executable="${redtamarin.createprojector}" dir="${basedir}">
+			<arg line="-exe ${redtamarin.win.avmplus_d}" />
+			<arg line="-o ${basedir}/bin/win/hdrconverter.exe" />
+			<arg line="${basedir}/libs/hdrconverter.abc" />
+		</exec>
+		<exec executable="${redtamarin.createprojector}" dir="${basedir}">
+			<arg line="-exe ${redtamarin.osx.avmplus}" />
+			<arg line="-o ${basedir}/bin/osx/hdrconverter" />
+			<arg line="${basedir}/libs/hdrconverter.abc" />
+		</exec>
+		<exec executable="${redtamarin.createprojector}" dir="${basedir}">
+			<arg line="-exe ${redtamarin.nix.avmplus}" />
+			<arg line="-o ${basedir}/bin/nix/hdrconverter" />
+			<arg line="${basedir}/libs/hdrconverter.abc" />
+		</exec>
+
+
+
+	</target>
+
 
 	
 
@@ -81,13 +134,6 @@
          - - - - - - - - - - - - - - - - - -->
 	<target name="init">
 
-
-		<condition property="cexecutable" value="${digitas.tamarin.avmplus_mac}">
-			<os family="mac"/>
-		</condition>
-		<condition property="cexecutable" value="${basedir}/bin/splitter.exe">
-			<os family="windows"/>
-		</condition>
 
 	</target>
 

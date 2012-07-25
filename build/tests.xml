@@ -7,7 +7,7 @@
                    
      lepersp                                                                
      ====================================================================== -->
-<project name="Atf Encoder tests" default="main">
+<project name="Atf Encoder tests" default="main" basedir="../">
     <description>
             description
     </description>
@@ -30,12 +30,12 @@
          ================================= -->
 	<target name="splitter test" depends="init" description="description">
 
-		<exec executable="${cexecutable}" dir="${basedir}/deploy">
+		<exec executable="${splitter_exe}" dir="${basedir}/deploy">
 			<arg line="-i bb_mip_tmp.atf" />
 			<arg line="-o _splitted_bb_mip_tmp.atf" />
 		</exec>
 
-		<exec executable="${cexecutable}" dir="${basedir}/deploy">
+		<exec executable="${splitter_exe}" dir="${basedir}/deploy">
 			<arg line="-i bb_mip_tmp.atf" />
 			<arg line="-o _splitted_bb_mip_tmp_sel.atf" />
 			<arg line="-E" />
@@ -43,10 +43,50 @@
 
 	</target>
 
+	<!-- ================================= 
+          target: hdrconverter test              
+         ================================= -->
+	<target name="hdrconverter test" depends="init" description="description">
+		<echo>${hdrconverter_exe}</echo>
+		
+		<!--exec executable="${hdrconverter_exe}" dir="${basedir}/deploy"  >
+			<arg line="-i hdr/stockhouse.hdr" />
+			<arg line="-c" />
+			<arg line="-float hdr/stockhouse_.bin" />
+		</exec-->
+
+		<exec executable="${hdrconverter_exe}" dir="${basedir}/deploy"  >
+			<arg line="-i hdr/CNIGHT_31_irrad.hdr" />
+			<arg line="-c" />
+			<arg line="-png hdr/CNIGHT_31_rad_.png" />
+		</exec>
+		<exec executable="${hdrconverter_exe}" dir="${basedir}/deploy"  >
+			<arg line="-i hdr/CNIGHT_23_cross.hdr" />
+			<arg line="-c" />
+			<arg line="-float hdr/CNIGHT_23_.bin" />
+		</exec>
+		
+
+	</target>
+
     <!-- - - - - - - - - - - - - - - - - - 
           target: init                      
          - - - - - - - - - - - - - - - - - -->
     <target name="init">
+    	
+    	<condition property="splitter_exe" value="${basedir}/bin/osx/splitter">
+			<os family="mac"/>
+		</condition>
+		<condition property="splitter_exe" value="${basedir}/bin/win/splitter.exe">
+			<os family="windows"/>
+		</condition>
+    	
+    	<condition property="hdrconverter_exe" value="${basedir}/bin/osx/hdrconverter">
+			<os family="mac"/>
+		</condition>
+		<condition property="hdrconverter_exe" value="${basedir}/bin/win/hdrconverter.exe">
+			<os family="windows"/>
+		</condition>
     	
     </target>
 

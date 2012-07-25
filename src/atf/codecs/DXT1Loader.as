@@ -70,8 +70,6 @@ package atf.codecs {
 			var colors0 : ByteArray = bmpd.getPixels( new Rectangle( 0, 0, bmpd.width, bmpd.height >> 1 ) ); 
 			var colors1 : ByteArray = bmpd.getPixels( new Rectangle( 0, bmpd.height >> 1, bmpd.width, bmpd.height >> 1 ) );
 				
-			
-//			trace( "getPixels	", getTimer() - t , "ms");
 			bmpd.dispose( );
 
 			var datas : ByteArray = new ByteArray( );
@@ -87,24 +85,19 @@ package atf.codecs {
 			] );
 			LZMA.code( _data, datas, uint( _h *_w ) >> 2 );
 			
-//			trace( "lzma decoded", getTimer() - t , "ms");
-			
 			colors0.position =
 			colors1.position =
 			datas.position = 0;
 			
 			var pixels : ByteArray = _decode( colors0, colors1, datas );
 
-//			trace( "dxt1 decoded", getTimer() - t , "ms");
-			
 			bitmapData = new BitmapData( _w, _h, false, 0 );
 			bitmapData.setPixels( bitmapData.rect, pixels );
 			
-//			trace( "bitmap ok	", getTimer() - t , "ms\n---");
 			dispatchEvent( event );
 		}
+		
 		private static const LZMA : LZMADecoder = new LZMADecoder( ); 
-
 		
 		private function _decode( colors0 : ByteArray, colors1 : ByteArray, data : ByteArray) : ByteArray {
 			
