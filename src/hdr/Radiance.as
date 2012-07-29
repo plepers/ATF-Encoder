@@ -1,9 +1,7 @@
 package hdr {
-
-	import flash.trace.Trace;
 	import flash.utils.ByteArray;
 	import flash.utils.IDataInput;
-
+	
 	use namespace AS3;
 	/**
 	 * @author Pierre Lepers
@@ -31,15 +29,13 @@ package hdr {
 			readPixelsRawRLE(input, _rle, _header.width, _header.height);
 			//saturate( _rle );
 
-			trace("hdr.Radiance - readExternal -- _rle len : ", _rle.length);
 		}
 
-		private function saturate(rle : ByteArray) : void {
+		public function saturate(rle : ByteArray) : void {
 			
 			var min : uint = 0xFF;
 			var max : uint = 0x0;
 			var f : uint;
-			var ptr : int;
 			
 			var len : int = rle.length>>2;
 			for (var i : int = 0; i < len; i++) {
@@ -52,34 +48,35 @@ package hdr {
 			
 			var range_m : Number = 0xFE / (max-min);
 			
-			var hist : Array = [];
-			for (i = 0; i <= 0xFF; i++) {
-				hist[i] = 0;
-			}
-			
 			for ( i  = 0; i < len; i++) {
 				rle.position = i*4+3;
 				f = uint( ( rle.readUnsignedByte() - min + 1) * range_m ) & 0xFF;
-				hist[f] += 1;
 				rle.position = i*4+3;
 				rle.writeByte( f );
 				
 			}
-			trace( hist.join("\n"));
-			
-			trace( "hdr.Radiance - saturate -- " );
-			trace( "  min : ", min );
-			trace( "  max : ", max );
 
+		}
+		
+		public function getHistogram() : Vector.<uint> {
+			var i: uint;
+			var len : int = _rle.length>>2;
+			var hist : Vector.<uint> = new Vector.<uint>( 0xff, true );
+
+			for (i = 0; i <= 0xff; i++) {
+				hist[i] = 0;
+			}
 			
-			
-			
+			for ( i = 0; i < len; i++) {
+				_rle.position = i*4+3;
+				hist[_rle.readUnsignedByte()]++;
+			}
+			return hist;
 		}
 
 		public function getRGBE() : ByteArray {
 			return _rle;
 		}
-
 
 		public function convertToFloatRGB(result : ByteArray) : void {
 			_rle.position = result.position = 0;
@@ -193,9 +190,6 @@ package hdr {
 			var numExpected : int = 4 * numpixels;
 			input.readBytes(data, offset, numExpected);
 		}
-		
-		
-
 	}
 }
 
@@ -204,6 +198,7 @@ import hdr.readLn;
 import flash.utils.IDataInput;
 import flash.utils.IDataOutput;
 import flash.utils.IExternalizable;
+
 use namespace AS3;
 class Header implements IExternalizable {
 
@@ -244,7 +239,6 @@ class Header implements IExternalizable {
 			} else {
 				var res : * = WidthHeightPattern.exec(buf)
 				if ( res ) {
-					trace("hdr.Radiance - readExternal -- WH regexp result : ", res);
 					width = parseInt(res[2]);
 					height = parseInt(res[1]);
 					done = true;
