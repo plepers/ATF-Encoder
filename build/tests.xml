@@ -56,9 +56,9 @@
 		</exec-->
 
 		<exec executable="${hdrconverter_exe}" dir="${basedir}/deploy"  >
-			<arg line="-i hdr/CNIGHT_31_irrad.hdr" />
+			<arg line="-i hdr/green_diff_cross2.hdr" />
 			<arg line="-c" />
-			<arg line="-png hdr/CNIGHT_31_rad_.png" />
+			<arg line="-png hdr/green_diff_.png" />
 		</exec>
 		<exec executable="${hdrconverter_exe}" dir="${basedir}/deploy"  >
 			<arg line="-i hdr/CNIGHT_23_cross.hdr" />

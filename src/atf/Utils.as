@@ -102,6 +102,36 @@ package atf {
 			_header.writeExternal(input);
 		}
 		
+		public static function removeMips(input : ByteArray, atfOffset : uint = 0) : void {
+			input.position = atfOffset;
+
+			_header.readExternal(input);
+
+			_blocks.read(input, _header);
+
+			var blocks : Vector.<uint> = _blocks.blocks;
+			var numBlocks : uint = _blocks.blocks.length >> 1;
+			var rmblocks : Vector.<uint> = new Vector.<uint>();
+
+			if ( _header.format != AtfFormat.Compressed ) {
+				
+			} else {
+				
+			}
+			
+
+			for (var i : int = 0; i < numBlocks; i++) {
+				if ( (0x1 << (i % 8) ) & mask ) {
+					rmblocks.AS3::push(blocks[i * 2], blocks[i * 2 + 1]);
+				}
+			}
+
+			var dlen : uint = _removeBlocks(input, rmblocks);
+			input.position = atfOffset;
+			_header.length -= dlen;
+			_header.writeExternal(input);
+		}
+		
 		/**
 		 * return one of the blockbased texture formats internaly used by flash for the giver Context3D
 		 * @return one of the Blockbased format (TexFormat.ETC, TexFormat.DXT or TexFormat.PVRTC)

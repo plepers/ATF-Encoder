@@ -12,6 +12,8 @@ package hdr {
 		private var _header : Header;
 		private var _rle : ByteArray;
 		
+		private var _base : Number = 2;
+		
 		
 		public function get width() : int {
 			return _header.width;
@@ -27,15 +29,18 @@ package hdr {
 
 			_rle = new ByteArray();
 			readPixelsRawRLE(input, _rle, _header.width, _header.height);
-			//saturate( _rle );
+			saturate( _rle );
 
 		}
+		
+		
 
 		public function saturate(rle : ByteArray) : void {
 			
-			var min : uint = 0xFF;
-			var max : uint = 0x0;
-			var f : uint;
+			var min : int = 0xFF;
+			var max : int = 0x0;
+			var f : int;
+			
 			
 			var len : int = rle.length>>2;
 			for (var i : int = 0; i < len; i++) {
@@ -46,17 +51,79 @@ package hdr {
 				if( f > max ) max = f;
 			}
 			
-			var range_m : Number = 0xFE / (max-min);
+			min = min - 128;
+			max = max - 128;
+			
+			var newbaseMax : Number = Math.pow( Math.pow( 2, max ), 1.0/128 );
+			var newbaseMin : Number = Math.pow( Math.pow( 2, min ), -1.0/128 );
+			 
+			var newbase : Number = _base = Math.max( newbaseMax, newbaseMin );
+			var logbase : Number = Math.log( newbase );
+
+			trace( "RADIANCE BOUNDS " );
+			trace( "	min:", min  );
+			trace( "	max:", max  );
+			trace( "	base:", newbase  );
+			
+			var r : Number,g : Number,b : Number, e : Number;
+			var re : Number, ge : Number, be : Number;
 			
 			for ( i  = 0; i < len; i++) {
-				rle.position = i*4+3;
-				f = uint( ( rle.readUnsignedByte() - min + 1) * range_m ) & 0xFF;
-				rle.position = i*4+3;
+
+				rle.position = i*4;
+				
+				r = rle.readUnsignedByte();
+				g = rle.readUnsignedByte();
+				b = rle.readUnsignedByte();
+				f = rle.readUnsignedByte();
+				
+				f = f-128;
+				
+//				trace( 'init ', r, g, b, f );
+				
+				e = Math.pow(2.0, f );
+				r *= e;
+				g *= e;
+				b *= e;
+
+				
+				re = Math.ceil( Math.log( r/0xff )/logbase );
+				ge = Math.ceil( Math.log( g/0xff )/logbase );
+				be = Math.ceil( Math.log( b/0xff )/logbase );
+				
+				f = Math.max( re, Math.max( ge, be ) );
+				if( f < -128 ) f = -128;
+				if( f > 128 ) f = 128;
+				
+				e = Math.pow( newbase, f );
+				re = Math.round( r / e );
+				ge = Math.round( g / e );
+				be = Math.round( b / e );
+				
+				f += 128;
+				
+				if( re > 0xFF || ge > 0xff || be > 0xFF ) throw new Error( "hdr.Radiance - saturate : "+ re +"  "+ ge+"  "+ be );
+			
+				rle.position = i*4;
+				
+				rle.writeByte( re );
+				rle.writeByte( ge );
+				rle.writeByte( be );
 				rle.writeByte( f );
+				
+				f = f-128;
+//				trace( 'out  ', re, ge, be, f );
+				
 				
 			}
 
 		}
+		
+		
+		public function generateMipmaps() : void {
+			
+		}
+		
 		
 		public function getHistogram() : Vector.<uint> {
 			var i: uint;
@@ -97,7 +164,7 @@ package hdr {
 					result.writeFloat( .0 );
 					result.writeFloat( .0 );
 				} else {
-					f = Math.pow(2.0,( f & 0xFF ) - (128+8) );
+					f = Math.pow(2.0,( f & 0xFF ) - (128) );
 					result.writeFloat( r * f );
 					result.writeFloat( g * f );
 	                result.writeFloat( b * f );
@@ -190,6 +257,7 @@ package hdr {
 			var numExpected : int = 4 * numpixels;
 			input.readBytes(data, offset, numExpected);
 		}
+
 	}
 }
 

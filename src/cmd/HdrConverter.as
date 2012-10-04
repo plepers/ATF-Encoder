@@ -43,20 +43,34 @@ package cmd {
 			var hdrData : Radiance = new Radiance();
 			hdrData.readExternal(input);
 
-			var fdata : ByteArray
+			var fdata : ByteArray;
 
 			trace("convert in ", getTimer() - t, "ms");
+			
+			if( cl.mipmap ) hdrData.generateMipmaps();
 
-			if ( cl.crossmap && cl.floatExport ) {
-				if( fdata == null ) {
-					fdata = new ByteArray();
-					hdrData.convertToFloatRGB(fdata);
+			if ( cl.crossmap ) {
+				if( cl.floatExport ) {
+					if( fdata == null ) {
+						fdata = new ByteArray();
+						hdrData.convertToFloatRGB(fdata);
+					}
+					_exportCrossMapToFloat(fdata, hdrData.width, hdrData.height);
 				}
-				_exportCrossMapToFloat(fdata, hdrData.width, hdrData.height);
+				if ( cl.pngExport ) {
+					_exportCrossMapToPng(hdrData.getRGBE(), hdrData.width, hdrData.height);
+				}
 			}
-			if ( cl.crossmap && cl.pngExport ) {
-				_exportCrossMapToPng(hdrData.getRGBE(), hdrData.width, hdrData.height);
+			else {
+				if ( cl.pngExport ) {
+					_exportPng(hdrData.getRGBE(), hdrData.width, hdrData.height);
+				}
 			}
+		}
+
+		private function _exportPng(getRGBE : ByteArray, width : int, height : int) : void {
+			var baseName : String = cl.pngExport;
+			writeBinaryFile(baseName, "", PNGEncoder.encode( getRGBE, width, height) );
 		}
 
 		private function _exportCrossMapToPng( data : ByteArray, width : int, height : int) : void {
@@ -317,6 +331,7 @@ class CommandLine {
 	public var crossmap : Boolean;
 	public var floatExport : String;
 	public var pngExport : String;
+	public var mipmap : Boolean;
 
 	public function isEmpty() : Boolean {
 		return _empty;
@@ -370,11 +385,17 @@ class CommandLine {
 		_verbose = ( val == "1" || val == "true" );
 	}
 
+	private function handleMipmap(args : Array) : void {
+		var val : String = args.shift();
+		mipmap = ( val == "1" || val == "true" );
+	}
+
 	private function _init() : void {
 		_argHandlers = new Dictionary();
 
 		_argHandlers[ "-i" ] = handleIn;
 		_argHandlers[ "-c" ] = handleCross;
+		_argHandlers[ "-mipmap" ] = handleMipmap;
 		_argHandlers[ "-float" ] = handleFloatExport;
 		_argHandlers[ "-png" ] = handlePngExport;
 		_argHandlers[ "-verbose" ] = handleVerbose;
