@@ -39,7 +39,7 @@ package atf {
 			var cubic : Boolean = _header.type == AtfType.CUBE_MAP;
 			var blocksPerMip : uint = blockBased ? 8 : 1;
 			var bbfmtOffset : uint = blockBased ? blockbasedFormat << 1 : 0;
-			var blocksPerFace : uint = (cubic ? 6 : 1) * blocksPerMip;
+			var blocksPerFace : uint = _header.count * blocksPerMip;
 			if ( !cubic ) face = 0;
 
 			miplevel = (miplevel >= _header.count ) ? _header.count - 1 : miplevel;
@@ -103,33 +103,33 @@ package atf {
 		}
 		
 		public static function removeMips(input : ByteArray, atfOffset : uint = 0) : void {
-			input.position = atfOffset;
-
-			_header.readExternal(input);
-
-			_blocks.read(input, _header);
-
-			var blocks : Vector.<uint> = _blocks.blocks;
-			var numBlocks : uint = _blocks.blocks.length >> 1;
-			var rmblocks : Vector.<uint> = new Vector.<uint>();
-
-			if ( _header.format != AtfFormat.Compressed ) {
-				
-			} else {
-				
-			}
-			
-
-			for (var i : int = 0; i < numBlocks; i++) {
-				if ( (0x1 << (i % 8) ) & mask ) {
-					rmblocks.AS3::push(blocks[i * 2], blocks[i * 2 + 1]);
-				}
-			}
-
-			var dlen : uint = _removeBlocks(input, rmblocks);
-			input.position = atfOffset;
-			_header.length -= dlen;
-			_header.writeExternal(input);
+//			input.position = atfOffset;
+//
+//			_header.readExternal(input);
+//
+//			_blocks.read(input, _header);
+//
+//			var blocks : Vector.<uint> = _blocks.blocks;
+//			var numBlocks : uint = _blocks.blocks.length >> 1;
+//			var rmblocks : Vector.<uint> = new Vector.<uint>();
+//
+//			if ( _header.format != AtfFormat.Compressed ) {
+//				
+//			} else {
+//				
+//			}
+//			
+//
+//			for (var i : int = 0; i < numBlocks; i++) {
+//				if ( (0x1 << (i % 8) ) & mask ) {
+//					rmblocks.AS3::push(blocks[i * 2], blocks[i * 2 + 1]);
+//				}
+//			}
+//
+//			var dlen : uint = _removeBlocks(input, rmblocks);
+//			input.position = atfOffset;
+//			_header.length -= dlen;
+//			_header.writeExternal(input);
 		}
 		
 		/**

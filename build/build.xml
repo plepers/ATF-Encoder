@@ -32,6 +32,11 @@
 		<antcall target="create hdrconverter excutables">
 		</antcall>
 
+		<antcall target="compile mipassembler">
+		</antcall>
+		<antcall target="create mipassembler excutables">
+		</antcall>
+
 	</target>
 
 	<!-- ================================= 
@@ -118,6 +123,55 @@
 			<arg line="-exe ${redtamarin.nix.avmplus}" />
 			<arg line="-o ${basedir}/bin/nix/hdrconverter" />
 			<arg line="${basedir}/libs/hdrconverter.abc" />
+		</exec>
+
+
+
+	</target>
+
+
+	
+	
+	<!-- ================================= 
+          target: compile mipassembler             
+         ================================= -->
+	<target name="compile mipassembler" depends="init" description="description">
+
+		<java jar="${redtamarin.asc}" fork="true">
+			<arg line="-import ${redtamarin.libs.builtin}" />
+			<arg line="-import ${redtamarin.libs.toplevel}" />
+			<arg line="-d" />
+			<arg line="-strict" />
+			<arg line="${basedir}/src/cmd/MipAssembler.as" />
+		</java>
+
+		<move file="${basedir}/src/cmd/mipassembler.abc" tofile="${basedir}/libs/mipassembler.abc" overwrite="true" />
+
+	</target>
+
+	<!-- ================================= 
+          target: create mipassembler excutables
+         ================================= -->
+	<target name="create mipassembler excutables" depends="init" description="description">
+		
+		<delete dir="${basedir}/bin/" includes="**/mipassembler*">
+			
+		</delete>
+		
+		<exec executable="${redtamarin.createprojector}" dir="${basedir}">
+			<arg line="-exe ${redtamarin.win.avmplus_d}" />
+			<arg line="-o ${basedir}/bin/win/mipassembler.exe" />
+			<arg line="${basedir}/libs/mipassembler.abc" />
+		</exec>
+		<exec executable="${redtamarin.createprojector}" dir="${basedir}">
+			<arg line="-exe ${redtamarin.osx.avmplus}" />
+			<arg line="-o ${basedir}/bin/osx/mipassembler" />
+			<arg line="${basedir}/libs/mipassembler.abc" />
+		</exec>
+		<exec executable="${redtamarin.createprojector}" dir="${basedir}">
+			<arg line="-exe ${redtamarin.nix.avmplus}" />
+			<arg line="-o ${basedir}/bin/nix/mipassembler" />
+			<arg line="${basedir}/libs/mipassembler.abc" />
 		</exec>
 
 

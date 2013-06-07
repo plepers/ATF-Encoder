@@ -70,7 +70,10 @@ package atf.codecs {
 			var colors0 : ByteArray = bmpd.getPixels( new Rectangle( 0, 0, bmpd.width, bmpd.height >> 1 ) ); 
 			var colors1 : ByteArray = bmpd.getPixels( new Rectangle( 0, bmpd.height >> 1, bmpd.width, bmpd.height >> 1 ) );
 				
-			bmpd.dispose( );
+				
+			bitmapData = bmpd;
+			return;
+			//bmpd.dispose( );
 
 			var datas : ByteArray = new ByteArray( );
 			_data.position = 0;

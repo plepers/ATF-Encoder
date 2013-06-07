@@ -29,7 +29,7 @@ package atf {
 			
 			var i : int = ( ( face * (cubic?6:1) + miplevel )* blocksPerMip ) << 1;
 			
-			if( _header.format == AtfFormat.Compressed )
+			if( _header.format == 2 ||_header.format == 3 )
 				return _extractDXT1( atfbytes, b[ i ], b[ i + 1 ], b[ i+2 ], b[ i + 3 ] );
 			else 
 				return _extractJXR( atfbytes, b[ i ], b[ i + 1 ] );
@@ -38,6 +38,7 @@ package atf {
 		
 		
 		private static function _extractDXT1( atfbytes : ByteArray, dpos : uint, dlen : uint, jpos : uint, jlen : uint) : TextureLoader {
+			trace( "atf.Decoder - _extractDXT1 -- " );
 			var dxtData : ByteArray = new ByteArray( );
 			dxtData.writeBytes( atfbytes, dpos, dlen );
 			var jpegxr : ByteArray = new ByteArray( );

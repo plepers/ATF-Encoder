@@ -1,5 +1,6 @@
 package cmd {
 
+	import fx.DiffuseEnv;
 	import avmplus.FileSystem;
 	import avmplus.System;
 
@@ -17,6 +18,7 @@ package cmd {
 	public class HdrConverter {
 
 		private var cl : CommandLine;
+		private var _base : Number;
 
 		public function HdrConverter(args : Array) {
 			trace("cmd.Hdr2Float - Hdr2Float -- ");
@@ -34,44 +36,75 @@ package cmd {
 		}
 
 		private function _run() : void {
-			trace("cmd.Hdr2Float - _run -- ", cl.input);
+			trace("cmd.Hdr2Float - convert ", cl.input);
 			var input : ByteArray = FileSystem.readByteArray(cl.input);
-			trace("cmd.Hdr2Float - _run -- input len  ", input.length);
 
 			var t : int = getTimer();
 
 			var hdrData : Radiance = new Radiance();
 			hdrData.readExternal(input);
+			
+			// TODO add option
+			hdrData.saturate();
 
 			var fdata : ByteArray;
 
 			trace("convert in ", getTimer() - t, "ms");
 			
-			if( cl.mipmap ) hdrData.generateMipmaps();
+			if( cl.mipmap ) {
+				hdrData.generateMipmaps(  );
+			}
 
-			if ( cl.crossmap ) {
-				if( cl.floatExport ) {
-					if( fdata == null ) {
-						fdata = new ByteArray();
-						hdrData.convertToFloatRGB(fdata);
+			if ( cl.pngExport ) {
+				
+				if( cl.diffusion && !cl.mipmap ) {
+					
+					if( !cl.mipmap ) hdrData.generateMipmaps(  );
+					var floatRgb : ByteArray = hdrData.getMipmapFloat( 4 );
+//					var floatRgb : ByteArray = new ByteArray();
+//					hdrData.convertToFloatRGB( floatRgb );
+					_base = hdrData.getBase();
+					trace("_splitCrossMapToFloat with base ", _base );
+					var faces : Array = _splitCrossMapToFloat( floatRgb , hdrData.width >> 5, hdrData.height >> 5);
+					
+					var diffuseEnv : DiffuseEnv = new DiffuseEnv();
+					diffuseEnv.configure( cl.outputSize, cl.numSample, cl.power, cl.curve, cl.passes );
+					diffuseEnv.processFaces( faces[0],faces[1],faces[2],faces[3],faces[4],faces[5], onDiffuseComplete);
+					return;
+				}
+				
+				writeBinaryFile(cl.pngExport, cl.mipmap ? "_mip0":"", PNGEncoder.encode( hdrData.getRGBE(), hdrData.width, hdrData.height) );
+				
+				if( cl.mipmap ) {
+					var mipbytes : ByteArray = new ByteArray();
+					for (var i : int = 0; i < hdrData.numLevels; i++) {
+						hdrData.getMipmapRGBE(i, mipbytes);
+						writeBinaryFile(cl.pngExport, "_mip"+(i+1), PNGEncoder.encode( mipbytes, hdrData.width >> (i+1), hdrData.height >> (i+1) ) );
+						mipbytes.length = 0;
+						
 					}
-					_exportCrossMapToFloat(fdata, hdrData.width, hdrData.height);
-				}
-				if ( cl.pngExport ) {
-					_exportCrossMapToPng(hdrData.getRGBE(), hdrData.width, hdrData.height);
-				}
-			}
-			else {
-				if ( cl.pngExport ) {
-					_exportPng(hdrData.getRGBE(), hdrData.width, hdrData.height);
 				}
 			}
 		}
 
-		private function _exportPng(getRGBE : ByteArray, width : int, height : int) : void {
-			var baseName : String = cl.pngExport;
-			writeBinaryFile(baseName, "", PNGEncoder.encode( getRGBE, width, height) );
+		public function onDiffuseComplete( result : Array ) : void {
+			
+			
+			var faceSize : int = Math.sqrt( ( result[0] as Vector.<Number> ).length/3);
+			
+			trace( "faceSize", faceSize );
+			
+			var floatRgb : ByteArray = _composeCrossMapFromFloat( result );
+			
+			var hdrData : Radiance = new Radiance();
+			
+			hdrData.setFloatRGB( floatRgb, faceSize*3, faceSize*4, _base );
+			
+			trace( "hdrData.width, hdrData.height, base",  hdrData.width, hdrData.height, _base);
+			
+			writeBinaryFile(cl.pngExport, cl.mipmap ? "_mip0":"", PNGEncoder.encode( hdrData.getRGBE(), hdrData.width, hdrData.height) );
 		}
+
 
 		private function _exportCrossMapToPng( data : ByteArray, width : int, height : int) : void {
 			var baseName : String = cl.pngExport;
@@ -159,108 +192,241 @@ package cmd {
 			writeBinaryFile(baseName, "4", PNGEncoder.encode( faceData, faceSize, faceSize ) );
 		}
 
-		private function _exportCrossMapToFloat(data : ByteArray, width : int, height : int) : void {
-			var baseName : String = cl.floatExport;
+		private function _splitCrossMapToFloat(data : ByteArray, width : int, height : int) : Array {
+			
+			var res : Array = [];
+			
 			// Figure out whether we're dealing with an image with mipmaps
 			// (square image, with mipmap chain embedded down and to the right
 			// of the cross) or not (simple cross).
 			var faceSize : int = guessFaceSize( width, height );
-			var faceData : ByteArray = new ByteArray();
-			faceData.endian = Endian.LITTLE_ENDIAN;
-
-			// Positive X
+			
+			var faceData : Vector.<Number>;
+			
+			
+			faceData = new Vector.<Number>();
+			res.push( faceData );
+			
+			// left
 			var i : int, j : int;
 			var x : int, y : int;
 			var ht : int;
 			for (j = 0; j < faceSize; ++j) {
-				y = height - (faceSize + j + 1);
-				ht = width * (height - 1 - y);
+				ht = width * (faceSize + j);
 				for (i = 0; i < faceSize; ++i) {
 					x = i;
 					data.position = (ht + x) * 12;
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
+					faceData.push( data.readFloat() );
+					faceData.push( data.readFloat() );
+					faceData.push( data.readFloat() );
 				}
 			}
-			writeBinaryFile(baseName, "0", faceData);
 
-			// Negative X
-			faceData.position = 0;
+			// right
+			faceData = new Vector.<Number>();
+			res.push( faceData );
 			for ( j = 0; j < faceSize; ++j) {
-				y = height - (faceSize + j + 1);
-				ht = width * (height - 1 - y);
+				ht = width * (faceSize + j);
 				for ( i = 0; i < faceSize; ++i) {
 					x = 2 * faceSize + i;
 					data.position = (ht + x) * 12;
 
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
+					faceData.push(data.readFloat());
+					faceData.push(data.readFloat());
+					faceData.push(data.readFloat());
 				}
 			}
-			writeBinaryFile(baseName, "1", faceData);
 
-			// Positive Y
-			faceData.position = 0;
+			// top
+			faceData = new Vector.<Number>();
+			res.push( faceData );
 			for ( j = 0; j < faceSize; ++j) {
-				y = 3 * faceSize + j;
-				ht = width * (height - 1 - y);
-				for ( i = 0; i < faceSize; ++i) {
-					x = 2 * faceSize - (i + 1);
-					data.position = (ht + x) * 12;
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
-				}
-			}
-			writeBinaryFile(baseName, "4", faceData);
-
-			// Negative Y
-			faceData.position = 0;
-			for ( j = 0; j < faceSize; ++j) {
-				y = faceSize + j;
-				ht = width * (height - 1 - y);
-				for ( i = 0; i < faceSize; ++i) {
-					x = 2 * faceSize - (i + 1);
-					data.position = (ht + x) * 12;
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
-				}
-			}
-			writeBinaryFile(baseName, "5", faceData);
-
-			// Positive Z
-			faceData.position = 0;
-			for ( j = 0; j < faceSize; ++j) {
-				y = j;
-				ht = width * (height - 1 - y);
-				for ( i = 0; i < faceSize; ++i) {
-					x = 2 * faceSize - (i + 1);
-					data.position = (ht + x) * 12;
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
-				}
-			}
-			writeBinaryFile(baseName, "2", faceData);
-
-			// Negative Z
-			faceData.position = 0;
-			for ( j = 0; j < faceSize; ++j) {
-				y = height - (faceSize + j + 1);
-				ht = width * (height - 1 - y);
+				ht = width * j;
 				for ( i = 0; i < faceSize; ++i) {
 					x = faceSize + i;
 					data.position = (ht + x) * 12;
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
-					faceData.writeFloat(data.readFloat());
+					faceData.push(data.readFloat());
+					faceData.push(data.readFloat());
+					faceData.push(data.readFloat());
 				}
 			}
-			writeBinaryFile(baseName, "3", faceData);
+
+			// bottom
+			faceData = new Vector.<Number>();
+			res.push( faceData );
+			for ( j = 0; j < faceSize; ++j) {
+				ht = width * (faceSize*2 + j);
+				for ( i = 0; i < faceSize; ++i) {
+					x = faceSize + i;
+					data.position = (ht + x) * 12;
+					faceData.push(data.readFloat());
+					faceData.push(data.readFloat());
+					faceData.push(data.readFloat());
+				}
+			}
+
+			// front
+			faceData = new Vector.<Number>();
+			res.push( faceData );
+			for ( j = 0; j < faceSize; ++j) {
+				ht = width * (faceSize + j);
+				for ( i = 0; i < faceSize; ++i) {
+					x = faceSize + i;
+					data.position = (ht + x) * 12;
+					faceData.push(data.readFloat());
+					faceData.push(data.readFloat());
+					faceData.push(data.readFloat());
+				}
+			}
+
+			// back
+			faceData = new Vector.<Number>();
+			res.push( faceData );
+			for ( j = 0; j < faceSize; ++j) {
+				ht = width * (height - 1 - j);
+				for ( i = 0; i < faceSize; ++i) {
+					x = 2 * faceSize - (i + 1);
+					data.position = (ht + x) * 12;
+					faceData.push(data.readFloat());
+					faceData.push(data.readFloat());
+					faceData.push(data.readFloat());
+				}
+			}
+			
+			return res;
 		}
+
+
+		private function _composeCrossMapFromFloat( faces : Array) : ByteArray {
+			
+			var data : ByteArray = new ByteArray();
+			// Figure out whether we're dealing with an image with mipmaps
+			// (square image, with mipmap chain embedded down and to the right
+			// of the cross) or not (simple cross).
+			var faceSize : int = Math.sqrt( ( faces[0] as Vector.<Number> ).length/3);
+			var width : int = faceSize*3;
+			var height : int = faceSize*4;
+			
+			data.length = width * height * 12;
+			
+			var faceData : Vector.<Number>;
+			
+			
+			faceData = faces[0];
+			
+			
+			// left
+			var i : int, j : int;
+			var x : int, y : int;
+			var ht : int;
+			var c : int;
+			
+			c = 0;
+			for (j = 0; j < faceSize; ++j) {
+				ht = width * (faceSize + j);
+				for (i = 0; i < faceSize; ++i) {
+					x = i;
+					data.position = (ht + x) * 12;
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+				}
+			}
+
+			// right
+			faceData = faces[1];
+			c=0;
+			for ( j = 0; j < faceSize; ++j) {
+				ht = width * (faceSize + j);
+				for ( i = 0; i < faceSize; ++i) {
+					x = 2 * faceSize + i;
+					data.position = (ht + x) * 12;
+
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+				}
+			}
+
+			// top
+			faceData = faces[2];
+			c=0;
+			for ( j = 0; j < faceSize; ++j) {
+				y = 3 * faceSize + j;
+				ht = width * j;
+				for ( i = 0; i < faceSize; ++i) {
+					x = faceSize + i;
+					data.position = (ht + x) * 12;
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+				}
+			}
+
+			// bottom
+			faceData = faces[3];
+			c=0;
+			for ( j = 0; j < faceSize; ++j) {
+				ht = width * (faceSize*2 + j);
+				for ( i = 0; i < faceSize; ++i) {
+					x = faceSize + i;
+					data.position = (ht + x) * 12;
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+				}
+			}
+
+			// front
+			faceData = faces[4];
+			c=0;
+			for ( j = 0; j < faceSize; ++j) {
+				y = j;
+				ht = width * (faceSize + j);
+				for ( i = 0; i < faceSize; ++i) {
+					x = faceSize + i;
+					data.position = (ht + x) * 12;
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+				}
+			}
+
+			// back
+			faceData = faces[5];
+			c=0;
+			for ( j = 0; j < faceSize; ++j) {
+				y = height - (faceSize + j + 1);
+				ht = width * (height - 1 - j);
+				for ( i = 0; i < faceSize; ++i) {
+					x = 2 * faceSize - (i + 1);
+					data.position = (ht + x) * 12;
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+					data.writeFloat(faceData[c++] );
+				}
+			}
+			
+			return data;
+		}
+
+		private function rotatePict( pict : Vector.<Number> ) : void {
+			var l : int = pict.length/3;
+			var l3 : int = l-3;
+			var tmp :  Vector.<Number>  = pict.concat();
+			var i3 : int;
+			var ri3 : int;
+			for (var i : int = 0; i <l; i++) {
+				
+				i3 = i*3;
+				ri3 = (l3-i)*3
+				pict[i3] = tmp[i3];
+				pict[i3+1] = tmp[i3+1];
+				pict[i3+2] = tmp[i3+2];
+			}
+			
+		}
+
 
 		private function guessFaceSize(width : int, height : int) : int {
 			var faceSize : int = 0;
@@ -310,9 +476,10 @@ package cmd {
 
 			help += " -i <atffile> input hdr file" + nl;
 			help += " -o <filename> : output binary" + nl;
-			help += " -c 		convert crossmap to 6 textures" + nl;
 			help += " -float 	export to float map" + nl;
 			help += " -png 		export to rgbe png" + nl;
+			help += " -tm <expo> <gamma>	tone map export in std RGB24 " + nl;
+			help += " -diffusion <size> <numSamples> <power> <curve> <passes>" + nl;
 
 			trace(help);
 		}
@@ -328,10 +495,15 @@ import flash.utils.Dictionary;
 
 class CommandLine {
 
-	public var crossmap : Boolean;
 	public var floatExport : String;
 	public var pngExport : String;
 	public var mipmap : Boolean;
+	private var _numSample : int;
+	private var _power : Number;
+	private var _curve : Number;
+	private var _passes : int;
+	public var diffusion : Boolean;
+	private var _outputSize : int;
 
 	public function isEmpty() : Boolean {
 		return _empty;
@@ -368,9 +540,6 @@ class CommandLine {
 		_help = true;
 	}
 
-	private function handleCross(args : Array) : void {
-		crossmap = true;
-	}
 
 	private function handleFloatExport(args : Array) : void {
 		floatExport = args.shift();
@@ -385,6 +554,15 @@ class CommandLine {
 		_verbose = ( val == "1" || val == "true" );
 	}
 
+	private function handleDiffusion(args : Array) : void {
+		_outputSize = parseInt( args.shift() );
+		_numSample = parseInt( args.shift() );
+		_power = parseFloat( args.shift() );
+		_curve = parseFloat( args.shift() );
+		_passes = parseInt( args.shift() );
+		diffusion = true;
+	}
+
 	private function handleMipmap(args : Array) : void {
 		var val : String = args.shift();
 		mipmap = ( val == "1" || val == "true" );
@@ -394,10 +572,10 @@ class CommandLine {
 		_argHandlers = new Dictionary();
 
 		_argHandlers[ "-i" ] = handleIn;
-		_argHandlers[ "-c" ] = handleCross;
 		_argHandlers[ "-mipmap" ] = handleMipmap;
 		_argHandlers[ "-float" ] = handleFloatExport;
 		_argHandlers[ "-png" ] = handlePngExport;
+		_argHandlers[ "-diffusion" ] = handleDiffusion;
 		_argHandlers[ "-verbose" ] = handleVerbose;
 		_argHandlers[ "-help" ] = handleHelp;
 	}
@@ -425,6 +603,26 @@ class CommandLine {
 
 	public function get verbose() : Boolean {
 		return _verbose;
+	}
+
+	public function get numSample() : int {
+		return _numSample;
+	}
+
+	public function get power() : Number {
+		return _power;
+	}
+
+	public function get curve() : Number {
+		return _curve;
+	}
+
+	public function get passes() : int {
+		return _passes;
+	}
+
+	public function get outputSize() : int {
+		return _outputSize;
 	}
 }
 
@@ -525,5 +723,6 @@ class PNGEncoder {
 
 include "../hdr/Radiance.as"
 include "../hdr/readLn.as"
+include "../fx/DiffuseEnv.as"
 
 var hdr2float : HdrConverter = new HdrConverter(System.argv);
