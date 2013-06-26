@@ -1,0 +1,9 @@
+.project
+
+/.settings
+/bin
+/build/build.properties
+/deploy
+/libs
+/test
+/thirdparty
